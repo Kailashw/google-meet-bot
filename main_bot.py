@@ -15,8 +15,13 @@ import soundfile as sf
 import sounddevice as sd
 from pydub import AudioSegment
 
+from file_utils import create_directory_with_permissions
+
 name = "Kailas_Walldoddi_MOFKRAH"
 leave_meeting = False; 
+
+create_directory_with_permissions('./screenshots')
+create_directory_with_permissions('./recordings')
 
 opt = Options()
 opt.add_argument('--disable-blink-features=AutomationControlled')
@@ -154,5 +159,5 @@ joinNow()
 ## wait untill the bot entered the meet
 
 DURATION = 60 #second
-record_audio(DURATION, 'meeting_audio.wav')
+record_audio(DURATION, 'recordings/meeting_audio.wav')
 leave_meeting_and_cleanup()
