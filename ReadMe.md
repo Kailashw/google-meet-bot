@@ -1,6 +1,8 @@
 > Clone the repo
-git clone {{repo-link}}
 
+```
+git clone {{repo-link}}
+```
 > run the following commands in order
 ```
 
