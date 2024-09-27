@@ -15,10 +15,18 @@ import soundfile as sf
 import sounddevice as sd
 from pydub import AudioSegment
 
+from bs4 import BeautifulSoup
+import argparse
+
 from file_utils import create_directory_with_permissions
 
 name = "Kailas_Walldoddi_MOFKRAH"
 leave_meeting = False; 
+NameFilterList = ["No response", "Accepted", "chat_bubble", "Chat with this guest", "more_vert\nMore actions", "chat_bubble\nChat with this guest", "(You)"]
+
+unique_participants = []
+active_participants = []
+
 
 create_directory_with_permissions('./screenshots')
 create_directory_with_permissions('./recordings')
@@ -38,7 +46,7 @@ driver = webdriver.Chrome(options=opt)
 
 def turnOffMicCam():
      # turn off Microphone
-     time.sleep(2)
+     time.sleep(5)
      driver.find_element(By.CSS_SELECTOR,'div.U26fgb.JRY2Pb.mUbCce.kpROve.yBiuPb.y1zVCf.M9Bg4d.HNeRed').click()
      driver.save_screenshot("screenshots/mic-off.png")
      print('mic off')
@@ -82,7 +90,24 @@ def joinNow():
 
     time.sleep(2)
 
-
+def get_participants(driver):
+    # List to store participant names
+    attendance_list = []
+    global unique_participants
+    global active_participants
+    # Find the element with the aria-label "Participants"
+    participants_element = driver.find_element(By.CSS_SELECTOR, '[aria-label="Participants"]')
+    print(participants_element)
+    # Get all child elements of the participants list
+    children = participants_element.find_elements(By.XPATH, './*')
+    print(children)
+    # Loop through each child and print the 'aria-label' attribute
+    for child in children:
+        aria_label = child.get_attribute("aria-label")
+        if aria_label:
+            print(aria_label)
+            attendance_list.append(aria_label)
+    return attendance_list
 
 def record_audio(duration, output_filename):
 
@@ -104,16 +129,24 @@ def record_audio(duration, output_filename):
                         frames_per_buffer=CHUNK)
     
     print("Recording...")
+    time.sleep(5)
+    # document.querySelector('[aria-label="Turn on captions"]').children
+    driver.find_element(By.XPATH, '//*[@aria-label="Turn on captions"]').click()
+    time.sleep(2)
+    driver.save_screenshot("screenshots/captions-on.png")
+    print("Captions turned on !!")
     frames = []
-    # global leave_meeting
-    # while not leave_meeting:
-    #     check_for_inactivity()
-    #     data = stream.read(CHUNK)
-    #     frames.append(data)
+    # run below code in background
+    # check_for_inactivity()
 
     for _ in range(0, int(RATE / CHUNK * duration)):
+       try:
         data = stream.read(CHUNK)
         frames.append(data)
+       except IOError as e:
+            # Handle overflow by continuing or reinitializing the stream
+            print(f"Buffer overflow: {e}, skipping this chunk.")
+            continue
     driver.save_screenshot("screenshots/recording-done.png")
     print("Finished recording.")
 
@@ -129,14 +162,23 @@ def record_audio(duration, output_filename):
 
 # Check for inactivity (simple example: leave if only the bot is present)
 def check_for_inactivity():
-    global leave_meeting
-    participants = len(driver.find_elements(By.CLASS_NAME, 'participant-tile'))
-    print(f"Participants: {participants}")
-    if participants <= 1:  # Assuming the bot itself is 1 participant
-        leave_meeting = True
-        print("Inactivity detected, leaving the meeting...")
+    try:
+        global leave_meeting
+        global active_participants
+        time.sleep(15)
+        # open people tab
+        driver.find_element(By.XPATH, '//*[@aria-label="People"]').click()
+        time.sleep(5)
+        participants = len(get_participants(driver))
+        print(f"Participants: {participants}")
+        if participants <= 1:  # Assuming the bot itself is 1 participant
+            leave_meeting_and_cleanup()
+            print("Inactivity detected, leaving the meeting...")
 
-    time.sleep(5)  # Check every 5 seconds
+        time.sleep(5)  # Check every 5 seconds
+    except Exception as e:
+        print("Some error occurred, exiting the operation:", e)
+        raise e
 
 def leave_meeting_and_cleanup():
     # Leave the call
@@ -149,7 +191,16 @@ def leave_meeting_and_cleanup():
     print("Browser closed, operation complete.")
 
 
-driver.get('https://meet.google.com/peb-vzug-qkq')
+# Create the parser
+parser = argparse.ArgumentParser(description="A script that takes a command-line argument or uses a default value.")
+# Add an argument with a default value
+parser.add_argument('--input', type=str, default='https://meet.google.com/peb-vzug-qkq', help='Input value from command line or default')
+#Parse the arguments and  Use the provided argument or the default value
+args = parser.parse_args()
+meeting_url = args.input
+print(f"meeting_url : {meeting_url}")
+
+driver.get(meeting_url)
 time.sleep(3)
 driver.save_screenshot("screenshots/opening-link.png")
 
