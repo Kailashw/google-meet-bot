@@ -22,11 +22,6 @@ from file_utils import create_directory_with_permissions
 
 name = "Kailas_Walldoddi_MOFKRAH"
 leave_meeting = False; 
-NameFilterList = ["No response", "Accepted", "chat_bubble", "Chat with this guest", "more_vert\nMore actions", "chat_bubble\nChat with this guest", "(You)"]
-
-unique_participants = []
-active_participants = []
-
 
 create_directory_with_permissions('./screenshots')
 create_directory_with_permissions('./recordings')
@@ -93,8 +88,6 @@ def joinNow():
 def get_participants(driver):
     # List to store participant names
     attendance_list = []
-    global unique_participants
-    global active_participants
     # Find the element with the aria-label "Participants"
     participants_element = driver.find_element(By.CSS_SELECTOR, '[aria-label="Participants"]')
     print(participants_element)
@@ -164,7 +157,6 @@ def record_audio(duration, output_filename):
 def check_for_inactivity():
     try:
         global leave_meeting
-        global active_participants
         time.sleep(15)
         # open people tab
         driver.find_element(By.XPATH, '//*[@aria-label="People"]').click()
